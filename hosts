@@ -1,2 +1,2 @@
-[localnet]
-monitorbot  ansible_user = tool
+localnet]
+<servername>  ansible_user = <username> 
