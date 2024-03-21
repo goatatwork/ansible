@@ -1,2 +1,2 @@
-localnet]
+[localnet]
 <servername>  ansible_user = <username> 
