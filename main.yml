@@ -1,3 +1,24 @@
 ---
-- hosts: localnet
-  gather_facts: false
+- hosts: all
+  gather_facts: true
+
+  tasks:
+    - name: Display all IPv4 addresses
+      debug:
+        var: ansible_facts['all_ipv4_addresses']
+
+    - name: Display only the operating system of the remote host
+      debug:
+        var: ansible_facts['os_family']
+
+    - name: Install a package conditionally based on the OS family
+      ansible.builtin.yum:
+        name: httpd
+        state: present
+      when: ansible_facts['os_family'] == "RedHat"
+
+    - name: Another conditional task for Debian systems
+      ansible.builtin.apt:
+        name: neovim
+        state: present
+      when: ansible_facts['os_family'] == "Debian"
