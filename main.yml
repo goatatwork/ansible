@@ -22,3 +22,77 @@
         name: neovim
         state: present
       when: ansible_facts['os_family'] == "Debian"
+
+    - name: Ensure libvirtd/qemu and vm management packages are installed
+      ansible.builtin.apt:
+        name:
+          - libvirt-daemon-driver-qemu
+          - qemu-system-arm
+          - libvirt-daemon-system
+          - libvirt-clients
+          - bridge-utils
+          - virtinst
+          - libosinfo-bin
+          - virt-manager
+        state: present
+        update_cache: yes
+
+    - name: Ensure the libvirtd service is available
+      ansible.builtin.service:
+        name: libvirtd
+        state: started
+        enabled: yes
+      # # For Ubuntu versions where the service might still be named libvirt-bin
+      # ignore_errors: yes
+
+    - name: Ensure virt-lightning and its requirements are installed
+      ansible.builtin.apt:
+        name:
+          - python3-venv
+          - pkg-config
+          - gcc
+          - libvirt-dev
+          - python3-dev
+        state: present
+        update_cache: yes
+
+    - name: Install pipx for Python package isolation
+      ansible.builtin.pip:
+        name: pipx
+        executable: pip3
+
+    - name: Ensure pipx bin directory is in the PATH
+      ansible.builtin.shell: |
+        if ! grep -q 'PATH=$PATH:~/.local/bin' ~/.bashrc; then
+          echo 'export PATH=$PATH:~/.local/bin' >> ~/.bashrc
+        fi
+      args:
+        executable: /bin/bash
+      become: false
+      when: ansible_env.SUDO_USER is defined or ansible_env.USER is defined
+
+    - name: Ensure pipx is initialized (ensurepath)
+      ansible.builtin.shell: pipx ensurepath
+      become: false
+      environment:
+        PATH: "{{ ansible_env.PATH }}:~/.local/bin"
+
+    - name: Install virt-lightning using pipx
+      ansible.builtin.shell: pipx install virt-lightning
+      become: false
+      environment:
+        PATH: "{{ ansible_env.PATH }}:~/.local/bin"
+
+    - name: Add the executing user to appropriate groups to manage VMs
+      ansible.builtin.user:
+        name: "{{ ansible_env.SUDO_USER | default(ansible_env.USER) }}"
+        groups:
+          - libvirt
+          - kvm
+        append: yes
+      register: user_added_to_groups
+      when: ansible_env.SUDO_USER is defined or ansible_env.USER is defined
+
+    - name: Reboot the server to apply group changes
+      ansible.builtin.reboot:
+      when: user_added_to_groups.changed
