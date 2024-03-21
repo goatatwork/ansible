@@ -1,2 +1,3 @@
-[localnet]
-<servername>  ansible_user = <username> 
+all:
+  hosts:
+    ansible.monitorbot.goatbot.ninja:
