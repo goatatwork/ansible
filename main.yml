@@ -3,14 +3,6 @@
   gather_facts: true
 
   tasks:
-    - name: Display all facts
-      debug:
-        var: ansible_facts
-
-    - name: Display all IPv4 addresses
-      debug:
-        var: ansible_facts['all_ipv4_addresses']
-
     - name: Display only the operating system of the remote host
       debug:
         var: ansible_facts['os_family']
@@ -19,14 +11,14 @@
       debug:
         var: ansible_facts['architecture']
 
-    - name: Another conditional task for Debian systems
+    - name: Ensure qemu-system-arm is installed if architecture is aarch64
       ansible.builtin.apt:
         name: qemu-system-arm
         state: present
       become: true
       when: ansible_facts['architecture'] == 'aarch64'
 
-    - name: Another conditional task for Debian systems
+    - name: Ensure qemu-system-x86 is installed if architecture is x86_64
       ansible.builtin.apt:
         name: qemu-system-x86
         state: present
@@ -52,8 +44,6 @@
         name: libvirtd
         state: started
         enabled: yes
-      # # For Ubuntu versions where the service might still be named libvirt-bin
-      # ignore_errors: yes
 
     - name: Ensure virt-lightning and its requirements are installed
       ansible.builtin.apt:
@@ -107,7 +97,11 @@
       become: true
       when: ansible_env.SUDO_USER is defined or ansible_env.USER is defined
 
+    - name: Display all IPv4 addresses
+      debug:
+        var: ansible_facts['all_ipv4_addresses']
+
     - name: Reboot the server to apply group changes
       ansible.builtin.reboot:
-      become: true
+      become: false
       when: user_added_to_groups.changed
