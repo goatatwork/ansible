@@ -3,6 +3,10 @@
   gather_facts: true
 
   tasks:
+    - name: Display all facts
+      debug:
+        var: ansible_facts
+
     - name: Display all IPv4 addresses
       debug:
         var: ansible_facts['all_ipv4_addresses']
@@ -11,23 +15,27 @@
       debug:
         var: ansible_facts['os_family']
 
-    - name: Install a package conditionally based on the OS family
-      ansible.builtin.yum:
-        name: httpd
-        state: present
-      when: ansible_facts['os_family'] == "RedHat"
+    - name: Display only the architecture of the remote host
+      debug:
+        var: ansible_facts['architecture']
 
     - name: Another conditional task for Debian systems
       ansible.builtin.apt:
-        name: neovim
+        name: qemu-system-arm
         state: present
       become: true
-      when: ansible_facts['os_family'] == "Debian"
+      when: ansible_facts['architecture'] == 'aarch64'
+
+    - name: Another conditional task for Debian systems
+      ansible.builtin.apt:
+        name: qemu-system-x86
+        state: present
+      become: true
+      when: ansible_facts['architecture'] == 'x86_64'
 
     - name: Ensure libvirtd/qemu and vm management packages are installed
       ansible.builtin.apt:
         name:
-          - qemu-system-arm
           - libvirt-daemon-driver-qemu
           - libvirt-daemon-system
           - libvirt-clients
