@@ -3,7 +3,16 @@
   gather_facts: true
 
   tasks:
-    - name: Display only the operating system of the remote host
+    - name: Ensure required packages are installed
+      ansible.builtin.apt:
+        name:
+          - git
+          - zsh
+        state: present
+        update_cache: yes
+      become: true
+
+    - name: Display the operating system of the remote host
       debug:
         var: ansible_facts['os_family']
 
@@ -58,35 +67,64 @@
         update_cache: yes
       become: true
 
-    - name: Install pipx for Python package isolation
+    - name: Ensure pipx is installed for Python package isolation
       ansible.builtin.pip:
         name: pipx
         executable: pip3
       become: true
 
-    - name: Ensure pipx bin directory is in the PATH
-      ansible.builtin.shell: |
-        if ! grep -q 'PATH=$PATH:~/.local/bin' ~/.bashrc; then
-          echo 'export PATH=$PATH:~/.local/bin' >> ~/.bashrc
-        fi
-      args:
-        executable: /bin/bash
+    - name: Ensure pipx bin directory is in the PATH for bash
+      ansible.builtin.lineinfile:
+        path: ~/.bashrc
+        line: 'export PATH=$PATH:~/.local/bin'
+        create: yes
+        state: present
+        regexp: '^export PATH=.*~/.local/bin.*$'
       become: false
       when: ansible_env.SUDO_USER is defined or ansible_env.USER is defined
 
-    - name: Ensure pipx is initialized (ensurepath)
+    - name: Ensure pipx bin directory is in the PATH for zsh
+      ansible.builtin.lineinfile:
+        path: ~/.zshrc
+        line: 'export PATH=$PATH:~/.local/bin'
+        create: yes
+        state: present
+        regexp: '^export PATH=.*~/.local/bin.*$'
+      become: false
+      when: ansible_env.SUDO_USER is defined or ansible_env.USER is defined
+
+    - name: Ensure pipx path is in .bashrc
+      ansible.builtin.shell: grep -q '~/.local/bin' ~/.bashrc
+      register: bashrc_check
+      failed_when: false
+      changed_when: false
+
+    - name: Ensure pipx path is in .zshrc
+      ansible.builtin.shell: grep -q '~/.local/bin' ~/.zshrc
+      register: zshrc_check
+      failed_when: false
+      changed_when: false
+
+    - name: Ensure pipx is initialized (pipx ensurepath)
       ansible.builtin.shell: pipx ensurepath
       become: false
       environment:
         PATH: "{{ ansible_env.PATH }}:~/.local/bin"
+      when: bashrc_check.rc != 0 or zshrc_check.rc != 0
 
-    - name: Install virt-lightning using pipx
+    - name: Make pipx_list to search for virt-lightning
+      ansible.builtin.command: pipx list
+      register: pipx_list
+      changed_when: false
+
+    - name: Ensure virt-lightning is installed using pipx
       ansible.builtin.shell: pipx install virt-lightning
       become: false
       environment:
         PATH: "{{ ansible_env.PATH }}:~/.local/bin"
+      when: "'virt-lightning' not in pipx_list.stdout"
 
-    - name: Add the executing user to appropriate groups to manage VMs
+    - name: Ensure the executing user is a member of management groups
       ansible.builtin.user:
         name: "{{ ansible_env.SUDO_USER | default(ansible_env.USER) }}"
         groups:
