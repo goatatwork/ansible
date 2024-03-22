@@ -24,8 +24,10 @@ my-ansible-playbook:latest main.yaml
 
 *20240321*
 
+```
 docker build -f Dockerfile-ansible -t goatatwork/ansible:alpine-3.19 .
 docker build -f Dockerfile-ansible-playbook -t goatatwork/ansible-playbook:alpine-3.19 .
+```
 
 ```
 docker run --rm -it \
