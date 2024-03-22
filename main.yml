@@ -1,5 +1,5 @@
 ---
-- hosts: all
+- hosts: virtual_machines
   gather_facts: true
 
   tasks:
@@ -21,13 +21,14 @@
       ansible.builtin.apt:
         name: neovim
         state: present
+      become: true
       when: ansible_facts['os_family'] == "Debian"
 
     - name: Ensure libvirtd/qemu and vm management packages are installed
       ansible.builtin.apt:
         name:
-          - libvirt-daemon-driver-qemu
           - qemu-system-arm
+          - libvirt-daemon-driver-qemu
           - libvirt-daemon-system
           - libvirt-clients
           - bridge-utils
@@ -36,6 +37,7 @@
           - virt-manager
         state: present
         update_cache: yes
+      become: true
 
     - name: Ensure the libvirtd service is available
       ansible.builtin.service:
@@ -48,6 +50,7 @@
     - name: Ensure virt-lightning and its requirements are installed
       ansible.builtin.apt:
         name:
+          - python3-pip
           - python3-venv
           - pkg-config
           - gcc
@@ -55,11 +58,13 @@
           - python3-dev
         state: present
         update_cache: yes
+      become: true
 
     - name: Install pipx for Python package isolation
       ansible.builtin.pip:
         name: pipx
         executable: pip3
+      become: true
 
     - name: Ensure pipx bin directory is in the PATH
       ansible.builtin.shell: |
@@ -91,8 +96,10 @@
           - kvm
         append: yes
       register: user_added_to_groups
+      become: true
       when: ansible_env.SUDO_USER is defined or ansible_env.USER is defined
 
     - name: Reboot the server to apply group changes
       ansible.builtin.reboot:
+      become: true
       when: user_added_to_groups.changed
