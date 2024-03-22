@@ -1,3 +1,7 @@
 all:
   hosts:
     ansible.monitorbot.goatbot.ninja:
+  children:
+    virtual_machines:
+      hosts:
+        192.168.67.3
