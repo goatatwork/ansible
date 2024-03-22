@@ -122,7 +122,16 @@
       become: false
       environment:
         PATH: "{{ ansible_env.PATH }}:~/.local/bin"
+      become: true
       when: "'virt-lightning' not in pipx_list.stdout"
+
+    - name: Make list of distros available with virt-lightning
+      ansible.builtin.command: vl distro_list
+      register: vl_distro_list
+
+    - name: Whoami
+      ansible.builtin.command: whoami
+      register: whoami
 
     - name: Ensure the executing user is a member of management groups
       ansible.builtin.user:
@@ -138,6 +147,14 @@
     - name: Display all IPv4 addresses
       debug:
         var: ansible_facts['all_ipv4_addresses']
+
+    - name: Display the vl distro list
+      debug:
+        var: vl_distro_list.stdout
+
+    - name: Display whoami
+      debug:
+        var: whoami.stdout
 
     - name: Reboot the server to apply group changes
       ansible.builtin.reboot:
