@@ -3,6 +3,14 @@
   gather_facts: true
 
   tasks:
+    - name: Whoami
+      ansible.builtin.command: whoami
+      register: whoami
+
+    - name: Display whoami
+      debug:
+        var: whoami.stdout
+
     - name: Ensure required packages are installed
       ansible.builtin.apt:
         name:
@@ -71,7 +79,6 @@
       ansible.builtin.pip:
         name: pipx
         executable: pip3
-      become: true
 
     - name: Ensure pipx bin directory is in the PATH for bash
       ansible.builtin.lineinfile:
@@ -119,19 +126,50 @@
 
     - name: Ensure virt-lightning is installed using pipx
       ansible.builtin.shell: pipx install virt-lightning
-      become: false
       environment:
         PATH: "{{ ansible_env.PATH }}:~/.local/bin"
-      become: true
       when: "'virt-lightning' not in pipx_list.stdout"
 
-    - name: Make list of distros available with virt-lightning
-      ansible.builtin.command: vl distro_list
-      register: vl_distro_list
+    - name: Ensure virt-lightning directories exist
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: directory
+        mode: '0775'
+      loop:
+        - { path: /var/lib/virt-lightning }
+        - { path: /var/lib/virt-lightning/pool }
+        - { path: /var/lib/virt-lightning/pool/upstream }
+      become: true
 
-    - name: Whoami
-      ansible.builtin.command: whoami
-      register: whoami
+    - name: Set ownership for /var/lib/virt-lightning/pool
+      ansible.builtin.file:
+        path: /var/lib/virt-lightning/pool
+        state: directory
+        owner: libvirt-qemu
+        group: kvm
+        recurse: yes
+      become: true
+
+    - name: Set ownership for /var/lib/virt-lightning/pool/upstream
+      ansible.builtin.file:
+        path: /var/lib/virt-lightning/pool/upstream
+        state: directory
+        owner: tool
+        group: tool
+        recurse: yes
+      become: true
+
+    - name: Link ~/.local/bin/vl to /usr/local/bin/vl
+      ansible.builtin.file:
+        src: "~/.local/bin/vl"
+        dest: "/usr/local/bin/vl"
+        state: link
+        force: yes
+      become: true
+
+    - name: Make list of distros available with virt-lightning
+      ansible.builtin.shell: 'vl distro_list'
+      register: vl_distro_list
 
     - name: Ensure the executing user is a member of management groups
       ansible.builtin.user:
@@ -151,10 +189,6 @@
     - name: Display the vl distro list
       debug:
         var: vl_distro_list.stdout
-
-    - name: Display whoami
-      debug:
-        var: whoami.stdout
 
     - name: Reboot the server to apply group changes
       ansible.builtin.reboot:
