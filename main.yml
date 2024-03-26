@@ -2,7 +2,41 @@
 - hosts: virtual_machines
   gather_facts: true
 
+  vars:
+    users:
+      - name: root
+        ssh_keys:
+          - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHGGdjHDqECI7pXnoa4FhG39XdFJsSpRbJDADhnPV3Y1"
+          - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHGGdjHDqECI7pXnoa4FhG39XdFJsSpRbJDADhnPV3Yq ryan5163@WK1Q9J7QX6.local"
+      - name: tool
+        ssh_keys:
+          - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHGGdjHDqECI7pXnoa4FhG39XdFJsSpRbJDADhnPV3Yq ryan5163@WK1Q9J7QX6.local"
+
   tasks:
+    - name: Ensure the users exist
+      ansible.builtin.user:
+        name: "{{ item.name }}"
+        shell: /bin/zsh
+      loop: "{{ users }}"
+
+    - name: Add an SSH authorized key for each user
+      ansible.posix.authorized_key:
+        user: "{{ item.0.name }}"
+        state: present
+        key: "{{ item.1 }}"
+      loop: "{{ lookup('subelements', users, 'ssh_keys') }}"
+
+    - name: Ensure the users have passwordless sudo
+      ansible.builtin.lineinfile:
+        path: "/etc/sudoers.d/{{ item.name }}"
+        line: "{{ item.name }} ALL=(ALL) NOPASSWD:ALL"
+        create: true
+        validate: visudo -cf %s
+        owner: root
+        group: root
+        mode: '0440'
+      loop: "{{ users }}"
+
     - name: Ensure required packages are installed
       ansible.builtin.apt:
         name:

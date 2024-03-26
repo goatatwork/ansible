@@ -26,3 +26,18 @@ Example run reformatted as single line:
 ```
 docker run --rm -it -v ~/.ssh:/root/.ssh -v $(pwd)/hosts:/etc/ansible/hosts -v $(pwd):/ansible -w /ansible goatatwork/ansible-playbook:alpine-3.19 main.yml
 ```
+
+To create a VM:
+```shell
+virt-install \
+  --name rgray-ubuntu01 \
+  --memory 2048 \
+  --vcpus 2 \
+  --disk path=/var/lib/libvirt/images/rgray-ubuntu01.qcow2,size=20,backing_store=/var/lib/libvirt/boot/jammy-server-cloudimg-arm64.img,format=qcow2 \
+  --os-type linux \
+  --os-variant ubuntu24.04 \
+  --network bridge=virbr0,model=virtio \
+  --graphics none \
+  --console pty,target_type=serial \
+  --import
+```
