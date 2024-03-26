@@ -47,10 +47,6 @@
         state: started
         enabled: true
 
-    - name: Display all IPv4 addresses
-      ansible.builtin.debug:
-        var: ansible_facts['all_ipv4_addresses']
-
     - name: Install packages to allow apt to use a repository over HTTPS to allow Docker to be installed
       ansible.builtin.apt:
         name:
@@ -79,11 +75,6 @@
         name: docker-ce
         state: latest
         update_cache: true
-
-    - name: Install Docker Module for Python
-      ansible.builtin.pip:
-        name: docker
-        state: absent
 
     - name: Ensure Docker service is running and enabled
       ansible.builtin.service:
