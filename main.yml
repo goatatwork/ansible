@@ -43,14 +43,20 @@
           - bridge-utils
           - ca-certificates
           - curl
+          - gcc
           - git
           - libosinfo-bin
           - libvirt-clients
           - libvirt-daemon-driver-qemu
           - libvirt-daemon-system
+          - libvirt-dev
+          - pkg-config
+          - python3-dev
+          - python3-libvirt
           - python3-pip
           - python3-setuptools
-          - qemu-system[-x86 or -arm]
+          - python3-urwid
+          - python3-venv
           - software-properties-common
           - virt-manager
           - virtinst
@@ -81,25 +87,121 @@
         state: started
         enabled: true
 
-    - name: Download Ubuntu Cloud Image
-      ansible.builtin.get_url:
-        url: https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
-        dest: /var/lib/libvirt/boot/jammy-server-cloudimg-amd64.img
-        owner: root
-        group: root
-        mode: '0644'
-      become: true
-      when: ansible_facts['architecture'] == 'x86_64'
+    - name: Ensure pipx is installed for virt-lightning
+      ansible.builtin.pip:
+        name: pipx
+        executable: pip3
 
-    - name: Download Ubuntu Cloud Image
-      ansible.builtin.get_url:
-        url: https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-arm64.img
-        dest: /var/lib/libvirt/boot/jammy-server-cloudimg-arm64.img
-        owner: root
-        group: root
-        mode: '0644'
+    - name: Ensure pipx bin directory is in the PATH for bash for virt-lightning
+      ansible.builtin.lineinfile:
+        path: ~/.bashrc
+        line: 'export PATH=$PATH:~/.local/bin'
+        create: true
+        state: present
+        regexp: '^export PATH=.*~/.local/bin.*$'
+      become: false
+      when: ansible_env.SUDO_USER is defined or ansible_env.USER is defined
+
+    - name: Ensure pipx bin directory is in the PATH for zsh for virt-lightning
+      ansible.builtin.lineinfile:
+        path: ~/.zshrc
+        line: 'export PATH=$PATH:~/.local/bin'
+        create: true
+        state: present
+        regexp: '^export PATH=.*~/.local/bin.*$'
+      become: false
+      when: ansible_env.SUDO_USER is defined or ansible_env.USER is defined
+
+    - name: Ensure pipx path is in .bashrc for virt-lightning
+      ansible.builtin.shell: grep -q '~/.local/bin' ~/.bashrc
+      register: bashrc_check
+      failed_when: false
+      changed_when: false
+
+    - name: Ensure pipx path is in .zshrc for virt-lightning
+      ansible.builtin.shell: grep -q '~/.local/bin' ~/.zshrc
+      register: zshrc_check
+      failed_when: false
+      changed_when: false
+
+    - name: Ensure pipx is initialized (pipx ensurepath) for virt-lightning
+      ansible.builtin.shell: pipx ensurepath
+      become: false
+      environment:
+        PATH: "{{ ansible_env.PATH }}:~/.local/bin"
+      when: bashrc_check.rc != 0 or zshrc_check.rc != 0
+
+    - name: Make pipx_list to search for virt-lightning
+      ansible.builtin.command: pipx list
+      register: pipx_list
+      changed_when: false
+
+    - name: Ensure virt-lightning is installed using pipx
+      ansible.builtin.shell: pipx install virt-lightning
+      environment:
+        PATH: "{{ ansible_env.PATH }}:~/.local/bin"
+      when: "'virt-lightning' not in pipx_list.stdout"
+
+    - name: Ensure virt-lightning directories exist
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: directory
+        mode: '0775'
+      loop:
+        - { path: /var/lib/virt-lightning }
+        - { path: /var/lib/virt-lightning/pool }
+        - { path: /var/lib/virt-lightning/pool/upstream }
       become: true
-      when: ansible_facts['architecture'] == 'aarch64'
+
+    - name: Set ownership for /var/lib/virt-lightning/pool
+      ansible.builtin.file:
+        path: /var/lib/virt-lightning/pool
+        state: directory
+        owner: libvirt-qemu
+        group: kvm
+        recurse: true
+      become: true
+
+    - name: Set ownership for /var/lib/virt-lightning/pool/upstream
+      ansible.builtin.file:
+        path: /var/lib/virt-lightning/pool/upstream
+        state: directory
+        owner: tool
+        group: tool
+        recurse: true
+      become: true
+
+    - name: Link ~/.local/bin/vl to /usr/local/bin/vl
+      ansible.builtin.file:
+        src: "~/.local/bin/vl"
+        dest: "/usr/local/bin/vl"
+        state: link
+        force: true
+      become: true
+
+    - name: Fetch the Ubuntu 22.04 image
+      ansible.builtin.command: vl fetch ubuntu-22.04
+      creates: /var/lib/virt-lightning/pool/upstream/ubuntu-22.04.qcow2
+
+    # - name: Download Ubuntu Cloud Image
+    #   ansible.builtin.get_url:
+    #     url: https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
+    #     dest: /var/lib/libvirt/boot/jammy-server-cloudimg-amd64.img
+    #     owner: root
+    #     group: root
+    #     mode: '0644'
+    #   become: true
+    #   when: ansible_facts['architecture'] == 'x86_64'
+
+    # - name: Download Ubuntu Cloud Image
+    #   ansible.builtin.get_url:
+    #     url: https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-arm64.img
+    #     dest: /var/lib/libvirt/boot/jammy-server-cloudimg-arm64.img
+    #     owner: root
+    #     group: root
+    #     mode: '0644'
+    #   become: true
+    #   when: ansible_facts['architecture'] == 'aarch64'
 
     - name: Add Docker GPG apt Key
       ansible.builtin.apt_key:
