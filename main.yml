@@ -6,7 +6,6 @@
     users:
       - name: root
         ssh_keys:
-          - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHGGdjHDqECI7pXnoa4FhG39XdFJsSpRbJDADhnPV3Y1"
           - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHGGdjHDqECI7pXnoa4FhG39XdFJsSpRbJDADhnPV3Yq ryan5163@WK1Q9J7QX6.local"
       - name: tool
         ssh_keys:
