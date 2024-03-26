@@ -40,9 +40,24 @@
     - name: Ensure required packages are installed
       ansible.builtin.apt:
         name:
+          - apt-transport-https
+          - bridge-utils
+          - ca-certificates
+          - curl
           - git
-          - zsh
+          - libosinfo-bin
+          - libvirt-clients
+          - libvirt-daemon-driver-qemu
+          - libvirt-daemon-system
+          - python3-pip
+          - python3-setuptools
+          - qemu-system[-x86 or -arm]
+          - software-properties-common
+          - virt-manager
+          - virtinst
+          - virtualenv
           - wget
+          - zsh
         state: present
         update_cache: true
       become: true
@@ -60,20 +75,6 @@
         state: present
       become: true
       when: ansible_facts['architecture'] == 'aarch64'
-
-    - name: Ensure libvirtd/qemu and vm management packages are installed
-      ansible.builtin.apt:
-        name:
-          - libvirt-daemon-driver-qemu
-          - libvirt-daemon-system
-          - libvirt-clients
-          - bridge-utils
-          - virtinst
-          - libosinfo-bin
-          - virt-manager
-        state: present
-        update_cache: true
-      become: true
 
     - name: Ensure the libvirtd service is available
       ansible.builtin.service:
@@ -100,19 +101,6 @@
         mode: '0644'
       become: true
       when: ansible_facts['architecture'] == 'aarch64'
-
-    - name: Install packages to allow apt to use a repository over HTTPS to allow Docker to be installed
-      ansible.builtin.apt:
-        name:
-          - apt-transport-https
-          - ca-certificates
-          - curl
-          - software-properties-common
-          - python3-pip
-          - virtualenv
-          - python3-setuptools
-        state: present
-        update_cache: true
 
     - name: Add Docker GPG apt Key
       ansible.builtin.apt_key:
