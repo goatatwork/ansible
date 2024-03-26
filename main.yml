@@ -81,6 +81,26 @@
         state: started
         enabled: true
 
+    - name: Download Ubuntu Cloud Image
+      ansible.builtin.get_url:
+        url: https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
+        dest: /var/lib/libvirt/boot/jammy-server-cloudimg-amd64.img
+        owner: root
+        group: root
+        mode: '0644'
+      become: true
+      when: ansible_facts['architecture'] == 'x86_64'
+
+    - name: Download Ubuntu Cloud Image
+      ansible.builtin.get_url:
+        url: https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-arm64.img
+        dest: /var/lib/libvirt/boot/jammy-server-cloudimg-arm64.img
+        owner: root
+        group: root
+        mode: '0644'
+      become: true
+      when: ansible_facts['architecture'] == 'aarch64'
+
     - name: Install packages to allow apt to use a repository over HTTPS to allow Docker to be installed
       ansible.builtin.apt:
         name:

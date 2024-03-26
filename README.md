@@ -31,12 +31,12 @@ To create a VM:
 ```shell
 virt-install \
   --name rgray-ubuntu01 \
-  --memory 2048 \
+  --memory 4096 \
   --vcpus 2 \
   --disk path=/var/lib/libvirt/images/rgray-ubuntu01.qcow2,size=20,backing_store=/var/lib/libvirt/boot/jammy-server-cloudimg-arm64.img,format=qcow2 \
   --os-type linux \
   --os-variant ubuntu24.04 \
-  --network bridge=virbr0,model=virtio \
+  --network network=default,model=virtio \
   --graphics none \
   --console pty,target_type=serial \
   --import
