@@ -181,7 +181,8 @@
 
     - name: Fetch the Ubuntu 22.04 image
       ansible.builtin.command: vl fetch ubuntu-22.04
-      creates: /var/lib/virt-lightning/pool/upstream/ubuntu-22.04.qcow2
+      args:
+        creates: /var/lib/virt-lightning/pool/upstream/ubuntu-22.04.qcow2
 
     # - name: Download Ubuntu Cloud Image
     #   ansible.builtin.get_url:

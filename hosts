@@ -4,4 +4,4 @@ all:
   children:
     virtual_machines:
       hosts:
-        192.168.67.14
+        192.168.67.15
