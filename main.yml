@@ -89,33 +89,6 @@
         state: started
         enabled: true
 
-    - name: Ensure pipx is installed for virt-lightning
-      ansible.builtin.pip:
-        name: pipx
-        executable: pip3
-
-    - name: Ensure ~/.local/bin directory is in the PATH for bash
-      ansible.builtin.lineinfile:
-        path: ~/.bashrc
-        line: 'export PATH=$PATH:~/.local/bin'
-        create: true
-        state: present
-        mode: '0644'
-        regexp: '^export PATH=.*~/.local/bin.*$'
-      become: false
-      when: ansible_env.SUDO_USER is defined or ansible_env.USER is defined
-
-    - name: Ensure ~/.local/bin directory is in the PATH for zsh
-      ansible.builtin.lineinfile:
-        path: ~/.zshrc
-        line: 'export PATH=$PATH:~/.local/bin'
-        create: true
-        state: present
-        mode: '0644'
-        regexp: '^export PATH=.*~/.local/bin.*$'
-      become: false
-      when: ansible_env.SUDO_USER is defined or ansible_env.USER is defined
-
     - name: Install virt-lightning
       ansible.builtin.command:
         cmd: pip3 install --no-deps virt-lightning
@@ -146,8 +119,8 @@
       ansible.builtin.file:
         path: /var/lib/virt-lightning/pool/upstream
         state: directory
-        owner: tool
-        group: tool
+        owner: root
+        group: root
         recurse: true
       become: true
 
@@ -161,7 +134,7 @@
         url: https://download.docker.com/linux/ubuntu/gpg
         state: present
 
-    - name: Add Docker Repository
+    - name: Add Docker APT Repository
       ansible.builtin.apt_repository:
         repo: "deb https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
         state: present
