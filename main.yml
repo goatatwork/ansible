@@ -7,15 +7,17 @@
       - name: root
         ssh_keys:
           - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHGGdjHDqECI7pXnoa4FhG39XdFJsSpRbJDADhnPV3Yq ryan5163@WK1Q9J7QX6.local"
+        shell: "/bin/zsh"
       - name: tool
         ssh_keys:
           - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHGGdjHDqECI7pXnoa4FhG39XdFJsSpRbJDADhnPV3Yq ryan5163@WK1Q9J7QX6.local"
+        shell: "/bin/zsh"
 
   tasks:
     - name: Ensure the users exist
       ansible.builtin.user:
         name: "{{ item.name }}"
-        shell: /bin/zsh
+        shell: "{{ item.shell }}"
       loop: "{{ users }}"
 
     - name: Add an SSH authorized key for each user
@@ -92,55 +94,33 @@
         name: pipx
         executable: pip3
 
-    - name: Ensure pipx bin directory is in the PATH for bash for virt-lightning
+    - name: Ensure ~/.local/bin directory is in the PATH for bash
       ansible.builtin.lineinfile:
         path: ~/.bashrc
         line: 'export PATH=$PATH:~/.local/bin'
         create: true
         state: present
+        mode: '0644'
         regexp: '^export PATH=.*~/.local/bin.*$'
       become: false
       when: ansible_env.SUDO_USER is defined or ansible_env.USER is defined
 
-    - name: Ensure pipx bin directory is in the PATH for zsh for virt-lightning
+    - name: Ensure ~/.local/bin directory is in the PATH for zsh
       ansible.builtin.lineinfile:
         path: ~/.zshrc
         line: 'export PATH=$PATH:~/.local/bin'
         create: true
         state: present
+        mode: '0644'
         regexp: '^export PATH=.*~/.local/bin.*$'
       become: false
       when: ansible_env.SUDO_USER is defined or ansible_env.USER is defined
 
-    - name: Ensure pipx path is in .bashrc for virt-lightning
-      ansible.builtin.shell: grep -q '~/.local/bin' ~/.bashrc
-      register: bashrc_check
-      failed_when: false
-      changed_when: false
-
-    - name: Ensure pipx path is in .zshrc for virt-lightning
-      ansible.builtin.shell: grep -q '~/.local/bin' ~/.zshrc
-      register: zshrc_check
-      failed_when: false
-      changed_when: false
-
-    - name: Ensure pipx is initialized (pipx ensurepath) for virt-lightning
-      ansible.builtin.shell: pipx ensurepath
-      become: false
-      environment:
-        PATH: "{{ ansible_env.PATH }}:~/.local/bin"
-      when: bashrc_check.rc != 0 or zshrc_check.rc != 0
-
-    - name: Make pipx_list to search for virt-lightning
-      ansible.builtin.command: pipx list
-      register: pipx_list
-      changed_when: false
-
-    - name: Ensure virt-lightning is installed using pipx
-      ansible.builtin.shell: pipx install virt-lightning
-      environment:
-        PATH: "{{ ansible_env.PATH }}:~/.local/bin"
-      when: "'virt-lightning' not in pipx_list.stdout"
+    - name: Install virt-lightning
+      ansible.builtin.command:
+        cmd: pip3 install --no-deps virt-lightning
+      args:
+        creates: /usr/local/bin/virt-lightning
 
     - name: Ensure virt-lightning directories exist
       ansible.builtin.file:
@@ -171,38 +151,10 @@
         recurse: true
       become: true
 
-    - name: Link ~/.local/bin/vl to /usr/local/bin/vl
-      ansible.builtin.file:
-        src: "~/.local/bin/vl"
-        dest: "/usr/local/bin/vl"
-        state: link
-        force: true
-      become: true
-
     - name: Fetch the Ubuntu 22.04 image
       ansible.builtin.command: vl fetch ubuntu-22.04
       args:
         creates: /var/lib/virt-lightning/pool/upstream/ubuntu-22.04.qcow2
-
-    # - name: Download Ubuntu Cloud Image
-    #   ansible.builtin.get_url:
-    #     url: https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
-    #     dest: /var/lib/libvirt/boot/jammy-server-cloudimg-amd64.img
-    #     owner: root
-    #     group: root
-    #     mode: '0644'
-    #   become: true
-    #   when: ansible_facts['architecture'] == 'x86_64'
-
-    # - name: Download Ubuntu Cloud Image
-    #   ansible.builtin.get_url:
-    #     url: https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-arm64.img
-    #     dest: /var/lib/libvirt/boot/jammy-server-cloudimg-arm64.img
-    #     owner: root
-    #     group: root
-    #     mode: '0644'
-    #   become: true
-    #   when: ansible_facts['architecture'] == 'aarch64'
 
     - name: Add Docker GPG apt Key
       ansible.builtin.apt_key:
