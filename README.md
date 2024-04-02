@@ -1,5 +1,7 @@
 # Ansible
 
+# The guts of this have been reproduced in the [ammo-box](https://github.com/objectrocket/ammo-box) repository.
+
 Because Ansible.
 
 After building, these can be executed locally like you see here. This is a bring your own hosts file and main.yml files situation.

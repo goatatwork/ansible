@@ -4,13 +4,9 @@
 
   vars:
     users:
-      - name: root
+      - name: rgray
         ssh_keys:
-          - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHGGdjHDqECI7pXnoa4FhG39XdFJsSpRbJDADhnPV3Yq ryan5163@WK1Q9J7QX6.local"
-        shell: "/bin/zsh"
-      - name: tool
-        ssh_keys:
-          - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHGGdjHDqECI7pXnoa4FhG39XdFJsSpRbJDADhnPV3Yq ryan5163@WK1Q9J7QX6.local"
+          - "ssh-ed25519 BBBBC3Nz4FhG39XdFJE5AbJDADhnPGECI7pXnoa4FhG39XdFJsSpRbJDADhnPV"
         shell: "/bin/zsh"
 
   tasks:
